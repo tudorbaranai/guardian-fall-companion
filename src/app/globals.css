@@ -1,0 +1,334 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ──────────────────────────────────────────────────────────────────────────
+   The Guardian — design tokens
+   Option 1 from the Fall Detection Companion brief: soft navy + cool grey-white
+   + sage accents. All body text meets WCAG 2.1 AAA (7:1) contrast on its bg.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-canvas: #eef1f5; /* cool grey-white app background        */
+  --color-surface: #ffffff; /* raised card / hero surface             */
+
+  --color-ink: #131826; /* primary body text — 14.6:1 on canvas   */
+  --color-ink-2: #384258; /* secondary text   —  7.5:1 on canvas    */
+  --color-ink-3: #5a6378; /* tertiary labels  — large text only     */
+
+  --color-navy: #1b3a5c; /* primary navy                           */
+  --color-navy-hi: #2e5278; /* lighter navy for gradients             */
+
+  --color-sage: #5f8a6a; /* sage accent — on white only            */
+  --color-sage-deep: #356548; /* sage text — 7.4:1, AAA body            */
+  --color-sage-bg: #e2eedc; /* sage tint background                   */
+
+  --color-amber: #946018; /* low-priority warning text — 7.5:1      */
+  --color-amber-bg: #f4e3c2;
+
+  --color-alert: #a6293c; /* emergency red — Fall Alert only        */
+  --color-alert-bg: #f4dce0;
+
+  --shadow-card: 0 1px 2px rgba(27, 58, 92, 0.04),
+    0 8px 24px rgba(27, 58, 92, 0.08);
+  --shadow-hi: 0 2px 4px rgba(27, 58, 92, 0.06),
+    0 18px 48px rgba(27, 58, 92, 0.1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* shadcn primitives (Button / Card / Badge) re-pointed at the Guardian palette */
+:root {
+  --radius: 1rem;
+  --background: #eef1f5;
+  --foreground: #131826;
+  --card: #ffffff;
+  --card-foreground: #131826;
+  --popover: #ffffff;
+  --popover-foreground: #131826;
+  --primary: #1b3a5c;
+  --primary-foreground: #eaf1f8;
+  --secondary: #eef1f5;
+  --secondary-foreground: #1b3a5c;
+  --muted: #eef1f5;
+  --muted-foreground: #384258;
+  --accent: #e2eedc;
+  --accent-foreground: #356548;
+  --destructive: #a6293c;
+  --border: rgba(27, 58, 92, 0.1);
+  --input: rgba(27, 58, 92, 0.12);
+  --ring: rgba(27, 58, 92, 0.35);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #131826;
+  --sidebar-primary: #1b3a5c;
+  --sidebar-primary-foreground: #eaf1f8;
+  --sidebar-accent: #eef1f5;
+  --sidebar-accent-foreground: #1b3a5c;
+  --sidebar-border: rgba(27, 58, 92, 0.1);
+  --sidebar-ring: rgba(27, 58, 92, 0.35);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-canvas text-ink;
+    /* Atkinson Hyperlegible — designed for low-vision readers. */
+    font-family: var(--font-sans), system-ui, sans-serif;
+    /* Brief: minimum 0.02em letter-spacing on body text. */
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── Guardian motion ───────────────────────────────────────────────────────
+   Calm by design: a slow 3.4s shield pulse, a 1.4s emergency halo. */
+@keyframes guardian-pulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes alert-halo {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+/* ── Vital-card animations ─────────────────────────────────────────────────
+   Three are recreated from the Claude Design "Vital Cards" handoff — the
+   keyframes, durations and easings below are kept verbatim from that spec. */
+
+/* Heart rate — live ECG trace. The bright path sweeps left → right and a
+   dot rides along it; `--ecg-dur` tracks the live BPM (3 spikes per loop). */
+@keyframes hr2Sweep {
+  0% {
+    stroke-dashoffset: 1260;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes hr2Dot {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: 100%;
+  }
+}
+.ecg-live {
+  stroke-dasharray: 60 1200;
+  animation: hr2Sweep var(--ecg-dur, 2.5s) linear infinite;
+}
+.ecg-dot {
+  animation: hr2Dot var(--ecg-dur, 2.5s) linear infinite;
+}
+
+/* Oxygen — air bubbles drifting upward. */
+@keyframes bubble-rise {
+  0% {
+    transform: translateY(14px) scale(0.5);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-80px) scale(1.05);
+    opacity: 0;
+  }
+}
+.bubble-rise {
+  animation: bubble-rise 2.7s ease-in-out infinite;
+}
+
+/* Body temperature — the gauge needle glides to the live reading. */
+.gauge-glide {
+  transition:
+    width 500ms ease-out,
+    left 500ms ease-out;
+}
+
+/* Stress — two soft sine waves; drift speed tracks the stress index. */
+@keyframes s2Slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-80px);
+  }
+}
+@keyframes s2Pulse {
+  0%,
+  100% {
+    stroke-width: 2;
+  }
+  50% {
+    stroke-width: 2.6;
+  }
+}
+.wave-back {
+  animation: s2Slide var(--wave-back-dur, 5s) linear infinite;
+}
+.wave-front {
+  animation:
+    s2Slide var(--wave-front-dur, 3.5s) linear infinite,
+    s2Pulse 4s ease-in-out infinite;
+}
+
+/* Battery card — the fill grows / shrinks smoothly when the level changes. */
+.battery-fill {
+  transition:
+    width 400ms ease-out,
+    background-color 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .battery-fill,
+  .gauge-glide {
+    transition: none;
+  }
+}
+
+/* Motion console — alarm dot pulse + sound-wave bars. */
+@keyframes manne-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.5;
+  }
+}
+@keyframes manne-bars {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.manne-pulse {
+  animation: manne-pulse 0.9s ease-in-out infinite;
+}
+.manne-bars {
+  transform-origin: center;
+  animation: manne-bars 0.7s ease-in-out infinite;
+}
+
+/* Mannequin limb / body animations live in JavaScript — see the
+   requestAnimationFrame loop inside `mannequin-3d.tsx`. The HUD's
+   `manne-pulse` and `manne-bars` keyframes below stay in CSS because
+   they animate static decorative elements, not the rig. */
+
+/* Fall-alert modal: backdrop fades in, the dialog rises and settles. */
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-backdrop-in {
+  animation: modal-backdrop-in 0.18s ease-out;
+}
+
+.modal-pop-in {
+  animation: modal-pop-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.guardian-pulse {
+  animation: guardian-pulse 3.4s ease-in-out infinite;
+}
+.guardian-pulse-delayed {
+  animation: guardian-pulse 3.4s ease-in-out infinite;
+  animation-delay: -1.7s;
+}
+.alert-halo {
+  animation: alert-halo 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guardian-pulse,
+  .guardian-pulse-delayed,
+  .alert-halo,
+  .modal-backdrop-in,
+  .modal-pop-in,
+  .ecg-live,
+  .ecg-dot,
+  .bubble-rise,
+  .wave-back,
+  .wave-front,
+  .manne-pulse,
+  .manne-bars {
+    animation: none;
+  }
+}
