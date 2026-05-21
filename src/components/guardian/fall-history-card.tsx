@@ -16,7 +16,7 @@ import { CheckIcon, ShieldIcon } from "./icons";
 import { incidentBadge } from "./incident-badge";
 
 /** How many events to show inline on the Overview card. */
-const PREVIEW_LIMIT = 2;
+const PREVIEW_LIMIT = 3;
 
 /**
  * Overview / Fall history — a compact mirror of the dedicated `/history`
@@ -96,12 +96,9 @@ function FallHistoryBody({ events }: { events: FallEventRow[] }) {
     );
   }
 
-  // Something happened this week — lead with the count, then the events.
+  // Something happened this week — show just the events, no count header.
   return (
     <div className="mt-3.5 flex flex-1 flex-col gap-2.5">
-      <p className="text-[16px] font-bold leading-tight text-ink">
-        {weekCount} fall{weekCount === 1 ? "" : "s"} detected this week
-      </p>
       <RecentEvents events={events} now={now} />
     </div>
   );

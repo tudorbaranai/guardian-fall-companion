@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { secondsSince } from "@/lib/device";
 import { longDate } from "@/lib/format";
 import { ACTIVITIES, type Activity, type Telemetry } from "@/lib/telemetry";
@@ -35,6 +35,10 @@ const REST: Telemetry = {
   hr: 0, spo2: 0, temp: 0, stress: 0, batt_v: 0, batt_pct: 0,
   ax: 0, ay: 0, az: 1, gx: 0, gy: 0, gz: 0,
   activity: "Stationary",
+  posture: null, sleepState: null,
+  stepCount: null, cadenceSpm: null,
+  hrvRmssd: null, restingHr: null,
+  fallState: null,
 };
 
 // ── Inline icons ───────────────────────────────────────────────────────────
@@ -148,6 +152,13 @@ export function MotionDashboard() {
   const [activityOverride, setActivityOverride] = useState<Activity | null>(
     null,
   );
+  // Calibration baseline — the roll/pitch captured when the user pressed
+  // "Calibrate". Subtracted from subsequent readings so the wearable's
+  // mounting tilt is treated as the new zero and the mannequin stands
+  // upright at rest regardless of how the IMU is oriented on the body.
+  const [baseline, setBaseline] = useState<{ roll: number; pitch: number } | null>(
+    null,
+  );
 
   // 1-second clock — drives the "alarm 00:07" / "since" elapsed timers.
   useEffect(() => {
@@ -158,13 +169,47 @@ export function MotionDashboard() {
   const fallen = snapshot.status === "fall";
   const live = snapshot.connected && telemetry !== null;
   const d = telemetry ?? REST;
+
   const effectiveActivity: Activity = activityOverride ?? d.activity;
 
-  // Orientation from the accelerometer (gravity vector).
-  const roll = (Math.atan2(d.ay, d.az) * 180) / Math.PI;
-  const pitch = (Math.atan2(-d.ax, Math.hypot(d.ay, d.az)) * 180) / Math.PI;
+  // Orientation from the accelerometer (gravity vector). Standard Z-up
+  // convention — REST (ax=0, ay=0, az=1) gives a clean 0 tilt. Real device
+  // data can land on any axis the firmware happens to point "down", so the
+  // auto-calibrate effect below captures the first real reading as the
+  // baseline and we subtract it from then on.
+  const rawRoll = (Math.atan2(d.ay, d.az) * 180) / Math.PI;
+  const rawPitch =
+    (Math.atan2(-d.ax, Math.hypot(d.ay, d.az)) * 180) / Math.PI;
+  const roll = baseline ? rawRoll - baseline.roll : rawRoll;
+  const pitch = baseline ? rawPitch - baseline.pitch : rawPitch;
   const tilt = Math.hypot(roll, pitch);
-  const impact = Math.hypot(d.ax, d.ay, d.az);
+  // Magnitude — writers shipping raw m/s² (|g| ≈ 9.8) and writers shipping
+  // normalized g both render the same impact readout.
+  const mag = Math.hypot(d.ax, d.ay, d.az) || 1;
+  const impact = mag > 4 ? mag / 9.80665 : mag;
+
+  // Auto-calibrate the first time real telemetry arrives. The wearable's
+  // mounting offset (which axis is "down" on the body) varies device-to-
+  // device, so we treat whatever the first reading reports as "upright"
+  // and animate tilt relative to that. The user can re-zero with the
+  // Calibrate button.
+  const autoCalibratedRef = useRef(false);
+  useEffect(() => {
+    if (autoCalibratedRef.current) return;
+    if (!telemetry) return;
+    const m = Math.hypot(telemetry.ax, telemetry.ay, telemetry.az);
+    if (m < 0.5) return;
+    const r = (Math.atan2(telemetry.ay, telemetry.az) * 180) / Math.PI;
+    const p =
+      (Math.atan2(
+        -telemetry.ax,
+        Math.hypot(telemetry.ay, telemetry.az),
+      ) *
+        180) /
+      Math.PI;
+    setBaseline({ roll: r, pitch: p });
+    autoCalibratedRef.current = true;
+  }, [telemetry]);
 
   const sinceSec = snapshot.fallEvent
     ? secondsSince(snapshot.fallEvent.detectedAt, clock)
@@ -189,6 +234,11 @@ export function MotionDashboard() {
       : "No live telemetry from the wearable yet.";
 
   function calibrate() {
+    // Snapshot the current orientation as the new zero, and force the
+    // mannequin into Stationary so any in-flight Falling/Walking pose is
+    // released — the figure pops back to a clean upright breathing pose.
+    setBaseline({ roll: rawRoll, pitch: rawPitch });
+    setActivityOverride("Stationary");
     setCalibrating(true);
     setTimeout(() => setCalibrating(false), 3000);
   }
@@ -304,6 +354,8 @@ export function MotionDashboard() {
             pitch={pitch}
             fallen={fallen}
             activity={effectiveActivity}
+            posture={d.posture}
+            cadence={d.cadenceSpm}
             tilt={tilt}
             impact={impact}
             since={sinceLabel}

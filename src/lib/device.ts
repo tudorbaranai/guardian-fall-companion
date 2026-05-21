@@ -13,6 +13,8 @@
  * ───────────────────────────────────────────────────────────────────────────
  */
 
+import type { Posture, SleepState } from "./telemetry";
+
 /** Plain-language health state for a single vital sign. */
 export type VitalStatus = "normal" | "elevated" | "low";
 
@@ -79,6 +81,19 @@ export interface DeviceSnapshot {
   /** Present only while a fall alert is active. */
   fallEvent: FallEvent | null;
   careCircle: CareContact[];
+  // ── Wellness telemetry (new columns) ──────────────────────────────────
+  /** Body posture — reported by the on-device classifier. */
+  posture: Posture | null;
+  /** Sleep stage — reported by the on-device classifier. */
+  sleepState: SleepState | null;
+  /** Steps since last device boot — running total. */
+  stepCount: number | null;
+  /** Instantaneous cadence in steps/min (6 s avg). */
+  cadenceSpm: number | null;
+  /** Heart-rate variability proxy (RMSSD, ms). */
+  hrvRmssd: number | null;
+  /** Baseline resting heart rate (EMA). */
+  restingHr: number | null;
 }
 
 /** Seconds the wearer has to cancel a false alarm before services are called. */
@@ -128,6 +143,12 @@ export function emptySnapshot(): DeviceSnapshot {
     },
     fallEvent: null,
     careCircle: CARE_CIRCLE,
+    posture: null,
+    sleepState: null,
+    stepCount: null,
+    cadenceSpm: null,
+    hrvRmssd: null,
+    restingHr: null,
   };
 }
 
@@ -150,7 +171,7 @@ export function defaultSnapshot(now: Date = new Date()): DeviceSnapshot {
     lastCheckedAt: new Date(now.getTime() - 2 * 60_000).toISOString(),
     heartRate: { value: 72, status: "normal" },
     oxygen: { value: 97, status: "normal" },
-    bodyTemperature: { value: 36.6, status: "normal" },
+    bodyTemperature: { value: 31.0, status: "normal" },
     stress: { value: 24, status: "normal" },
     activity: {
       active: true,
@@ -163,6 +184,13 @@ export function defaultSnapshot(now: Date = new Date()): DeviceSnapshot {
     },
     fallEvent: null,
     careCircle: CARE_CIRCLE,
+    // Plausible demo values so the wellness InfoRow has something to show.
+    posture: "upright",
+    sleepState: "awake",
+    stepCount: 4218,
+    cadenceSpm: 0,
+    hrvRmssd: 58,
+    restingHr: 64,
   };
 }
 

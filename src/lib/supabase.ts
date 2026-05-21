@@ -13,7 +13,15 @@
  * See `supabase/migrations/` for the schema + the realtime publication.
  */
 import { createClient } from "@supabase/supabase-js";
-import { ACTIVITIES, type Activity, type Telemetry } from "./telemetry";
+import {
+  ACTIVITIES,
+  POSTURES,
+  SLEEP_STATES,
+  type Activity,
+  type Posture,
+  type SleepState,
+  type Telemetry,
+} from "./telemetry";
 
 const VALID_ACTIVITIES = new Set<string>(ACTIVITIES);
 
@@ -62,7 +70,25 @@ function activityOf(raw: unknown): Activity {
     : "Stationary";
 }
 
+/** The on-device classifier writes posture as a smallint 0–3. */
+function postureOf(raw: unknown): Posture | null {
+  if (typeof raw !== "number") return null;
+  return POSTURES[raw] ?? null;
+}
+
+/** Sleep state — smallint 0–3 from the device. */
+function sleepOf(raw: unknown): SleepState | null {
+  if (typeof raw !== "number") return null;
+  return SLEEP_STATES[raw] ?? null;
+}
+
+/** Nullable smallint/integer columns — pass through finite numbers, else null. */
+function intOrNull(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
 function rowToEvent(row: TelemetryRow): TelemetryEvent {
+  const r = row as unknown as Record<string, unknown>;
   const reading: Telemetry = {
     hr: n(row.hr),
     spo2: n(row.spo2),
@@ -78,7 +104,14 @@ function rowToEvent(row: TelemetryRow): TelemetryEvent {
     gx: n(row.gx),
     gy: n(row.gy),
     gz: n(row.gz),
-    activity: activityOf((row as unknown as { activity?: unknown }).activity),
+    activity: activityOf(r.activity),
+    posture: postureOf(r.posture),
+    sleepState: sleepOf(r.sleep_state),
+    stepCount: intOrNull(r.step_count),
+    cadenceSpm: intOrNull(r.cadence_spm),
+    hrvRmssd: intOrNull(r.hrv_rmssd),
+    restingHr: intOrNull(r.resting_hr),
+    fallState: r.fall_state === 1 ? 1 : r.fall_state === 0 ? 0 : null,
   };
   return { reading, at: new Date(row.recorded_at) };
 }

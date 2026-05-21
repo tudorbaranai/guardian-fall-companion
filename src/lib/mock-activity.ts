@@ -33,9 +33,33 @@ function jitter(scale: number): number {
 
 export function mockMotionAxes(elapsedSeconds: number): Pick<
   Telemetry,
-  "ax" | "ay" | "az" | "gx" | "gy" | "gz" | "activity"
+  | "ax"
+  | "ay"
+  | "az"
+  | "gx"
+  | "gy"
+  | "gz"
+  | "activity"
+  | "posture"
+  | "sleepState"
+  | "stepCount"
+  | "cadenceSpm"
+  | "hrvRmssd"
+  | "restingHr"
+  | "fallState"
 > {
   const { activity, phaseSeconds } = loopPosition(elapsedSeconds);
+  // Approximate cumulative step count — Walking adds steps fast, Running
+  // even faster, Stationary not at all. Good enough for a demo readout.
+  const stepCount = Math.round(elapsedSeconds * 1.6 + 4200);
+  const wellness = {
+    posture: "upright" as const,
+    sleepState: "awake" as const,
+    stepCount,
+    hrvRmssd: 58,
+    restingHr: 64,
+    fallState: 0 as const,
+  };
 
   if (activity === "Walking") {
     const step = Math.sin(phaseSeconds * TAU * 1.55);
@@ -48,6 +72,8 @@ export function mockMotionAxes(elapsedSeconds: number): Pick<
       gy: step * 9 + jitter(2),
       gz: Math.sin(phaseSeconds * TAU * 0.75) * 5 + jitter(1.5),
       activity,
+      ...wellness,
+      cadenceSpm: 105,
     };
   }
 
@@ -62,6 +88,8 @@ export function mockMotionAxes(elapsedSeconds: number): Pick<
       gy: step * 20 + jitter(4),
       gz: Math.sin(phaseSeconds * TAU * 1.1) * 12 + jitter(3),
       activity,
+      ...wellness,
+      cadenceSpm: 160,
     };
   }
 
@@ -73,6 +101,8 @@ export function mockMotionAxes(elapsedSeconds: number): Pick<
     gy: Math.sin(elapsedSeconds * 1.1 + 1.3) * 0.5,
     gz: Math.sin(elapsedSeconds * 0.8) * 0.3,
     activity,
+    ...wellness,
+    cadenceSpm: 0,
   };
 }
 

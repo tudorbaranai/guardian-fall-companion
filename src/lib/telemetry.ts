@@ -31,6 +31,24 @@ export const ACTIVITIES: readonly Activity[] = [
   "Falling",
 ] as const;
 
+/** Coarse body posture from the on-device classifier. Unknown / null → upright. */
+export type Posture = "upright" | "reclined" | "lying" | "inverted";
+export const POSTURES: readonly Posture[] = [
+  "upright",
+  "reclined",
+  "lying",
+  "inverted",
+] as const;
+
+/** Sleep stage from the on-device classifier. Unknown / null → awake. */
+export type SleepState = "awake" | "resting" | "light" | "deep";
+export const SLEEP_STATES: readonly SleepState[] = [
+  "awake",
+  "resting",
+  "light",
+  "deep",
+] as const;
+
 /** One telemetry sample, as inserted into Supabase by the wearable. */
 export interface Telemetry {
   /** Heart rate, BPM — 0 when no finger is on the sensor. */
@@ -55,6 +73,20 @@ export interface Telemetry {
   gz: number;
   /** Coarse motion state — drives the mannequin animation. */
   activity: Activity;
+  /** Body posture from the on-device classifier. Null until reported. */
+  posture: Posture | null;
+  /** Sleep stage from the on-device classifier. Null until reported. */
+  sleepState: SleepState | null;
+  /** Total steps since device boot. Null until reported. */
+  stepCount: number | null;
+  /** Steps per minute, averaged over the last ~6 s. Null until reported. */
+  cadenceSpm: number | null;
+  /** Heart-rate variability (RMSSD, ms). Null until reported. */
+  hrvRmssd: number | null;
+  /** Resting heart-rate baseline (EMA). Null until reported. */
+  restingHr: number | null;
+  /** On-device fall classifier — 1 means a fall is currently confirmed. */
+  fallState: 0 | 1 | null;
 }
 
 /** Classifies a reading against a normal band. */
@@ -92,7 +124,8 @@ export function applyTelemetry(
       t.spo2 > 0
         ? { value: Math.round(t.spo2), status: band(t.spo2, 95, 100) }
         : prev.oxygen,
-    bodyTemperature: { value: round1(t.temp), status: band(t.temp, 36.1, 37.2) },
+    // Wrist skin temperature — normal ≈ 31 °C.
+    bodyTemperature: { value: round1(t.temp), status: band(t.temp, 30, 32.5) },
     stress: {
       value: stressIndex,
       status: stressIndex > 40 ? "elevated" : "normal",
@@ -102,5 +135,13 @@ export function applyTelemetry(
       percent: Math.round(t.batt_pct),
       voltage: t.batt_v,
     },
+    // Wellness fields — keep the last good value when a row arrives with
+    // nulls, so the Overview doesn't blink to blank between partial rows.
+    posture: t.posture ?? prev.posture,
+    sleepState: t.sleepState ?? prev.sleepState,
+    stepCount: t.stepCount ?? prev.stepCount,
+    cadenceSpm: t.cadenceSpm ?? prev.cadenceSpm,
+    hrvRmssd: t.hrvRmssd ?? prev.hrvRmssd,
+    restingHr: t.restingHr ?? prev.restingHr,
   };
 }

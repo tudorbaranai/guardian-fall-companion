@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from "react";
 
-import type { Activity } from "@/lib/telemetry";
+import type { Activity, Posture } from "@/lib/telemetry";
 
 const clamp = (n: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, n));
@@ -367,6 +367,8 @@ export function Mannequin3D({
   pitch,
   fallen,
   activity,
+  posture,
+  cadence,
   showGrid = true,
   tilt,
   impact,
@@ -378,6 +380,10 @@ export function Mannequin3D({
   /** Coarse motion state from the phone-side classifier. Drives the limb
    *  swing (Walking / Running) or the whole-body tumble (Falling). */
   activity: Activity;
+  /** Body posture from the on-device classifier — null until reported. */
+  posture: Posture | null;
+  /** Live cadence (steps/min) — null until reported, 0 when stationary. */
+  cadence: number | null;
   showGrid?: boolean;
   tilt: number;
   impact: number;
@@ -593,6 +599,19 @@ export function Mannequin3D({
           }}
         />
         {fallen ? "Fall detected" : ACTIVITY_LABEL[activity]}
+        {posture && !fallen && (
+          <span
+            style={{
+              marginLeft: 4,
+              paddingLeft: 8,
+              borderLeft: "1px solid rgba(27,58,92,0.18)",
+              opacity: 0.7,
+              fontWeight: 600,
+            }}
+          >
+            {posture}
+          </span>
+        )}
       </div>
 
       {/* Read-outs */}
@@ -615,6 +634,10 @@ export function Mannequin3D({
       >
         <InfoCell label="tilt" value={`${tilt.toFixed(1)}°`} />
         <InfoCell label="impact" value={`${impact.toFixed(2)} g`} />
+        <InfoCell
+          label="cadence"
+          value={cadence === null ? "—" : `${cadence} spm`}
+        />
         <InfoCell label="since" value={since} />
       </div>
 

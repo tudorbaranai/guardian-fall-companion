@@ -33,7 +33,9 @@ interface Band {
 export const VITAL_BANDS: Record<VitalKey, Band> = {
   heart: { warnLo: 50, lo: 60, hi: 100, warnHi: 120 },
   oxygen: { warnLo: 90, lo: 95, hi: 100, warnHi: 101 },
-  temperature: { warnLo: 35.5, lo: 36.1, hi: 37.2, warnHi: 38 },
+  // Skin temperature read at the wrist — typically ~31 °C, much lower than
+  // the 36.5 °C core/oral temperature you'd see at the doctor's office.
+  temperature: { warnLo: 28, lo: 30, hi: 32.5, warnHi: 34 },
   stress: { warnLo: -1, lo: 0, hi: 40, warnHi: 70 },
 };
 

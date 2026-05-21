@@ -139,8 +139,19 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
       );
       setTelemetry(event.reading);
       setTelemetryHistory((h) => [...h, event.reading].slice(-HISTORY_LEN));
+
+      // Telemetry-driven fall latch — the on-device `fall_state` flag is the
+      // fastest signal we have. Engage as soon as a row reports 1; the
+      // matching `fall_events` insert from the phone still confirms with an
+      // id, but we don't wait for it to flash the alert.
+      if (event.reading.fallState === 1 && !fallActive.current) {
+        fallActive.current = true;
+        fallStartedAt.current = event.at;
+        setSnapshot((prev) => withFall(prev));
+        notifyContacts(snapshotRef.current.person.name);
+      }
     },
-    [withFall],
+    [withFall, notifyContacts],
   );
 
   /** Engage the fall latch from a new (or already-open) fall_events row. */
@@ -231,11 +242,12 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
         95,
         99,
       );
+      // Wrist skin temperature drifts around ~31 °C, not core 36.6.
       const temp =
         Math.round(
-          (36.6 +
-            Math.sin(t * 0.05 + 0.4) * 0.15 +
-            (Math.random() - 0.5) * 0.04) *
+          (31.0 +
+            Math.sin(t * 0.05 + 0.4) * 0.3 +
+            (Math.random() - 0.5) * 0.08) *
             10,
         ) / 10;
       const stress = clamp(
