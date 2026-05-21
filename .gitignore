@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 .idea/
 .claude/
+
+# local debug / screenshots
+deploy.log
+img.png
+img_*.png
+*.screenshot.png
