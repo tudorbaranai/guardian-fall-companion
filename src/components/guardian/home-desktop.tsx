@@ -20,6 +20,7 @@ import { InfoRow } from "./info-row";
 import { BatteryCard } from "./battery-card";
 import { BatteryLevelReadout } from "./battery-level-indicator";
 import { FallHistoryCard } from "./fall-history-card";
+import { WellnessRow } from "./wellness-row";
 import { CallButton, statusCopy } from "./home-shared";
 import { MockDataToggle } from "./mock-data-toggle";
 import {
@@ -212,6 +213,8 @@ export function HomeDesktop({
                   }`
             }
           />
+
+          <WellnessRow snapshot={snapshot} />
         </div>
 
         {/* Right column — Fall history + Battery, two equal-height cards */}

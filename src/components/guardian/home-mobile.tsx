@@ -18,6 +18,7 @@ import {
 } from "./card-animations";
 import { InfoRow } from "./info-row";
 import { FallHistoryCard } from "./fall-history-card";
+import { WellnessRow } from "./wellness-row";
 import { CallButton, statusCopy } from "./home-shared";
 import { MockDataToggle } from "./mock-data-toggle";
 import {
@@ -180,7 +181,7 @@ export function HomeMobile({
         />
       </div>
 
-      {/* Activity + fall history */}
+      {/* Activity + wellness + fall history */}
       <div className="flex flex-col gap-2.5">
         <InfoRow
           icon={<WalkIcon size={22} sw={1.9} />}
@@ -198,6 +199,7 @@ export function HomeMobile({
               : `Last movement ${activity.lastMovementMinsAgo} minutes ago`
           }
         />
+        <WellnessRow snapshot={snapshot} />
         <FallHistoryCard />
       </div>
 
