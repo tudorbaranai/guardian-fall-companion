@@ -1,0 +1,106 @@
+/**
+ * Telemetry contract — the wire format the wearable writes and the app reads.
+ *
+ * ── Architecture note ──────────────────────────────────────────────────────
+ * The wearable's microcontroller inserts one row into Supabase
+ * `telemetry_readings` per reading (cadence ~once every 5–10 s). The browser
+ * subscribes to that table via Supabase Realtime and folds each row into the
+ * shared `DeviceSnapshot`. There is no MQTT anymore — Supabase is both the
+ * transport and the history store.
+ *
+ * The field names below intentionally match the `telemetry_readings` columns
+ * so a row can be consumed as `Telemetry` without any renaming.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+import type { DeviceSnapshot, VitalStatus } from "./device";
+
+/**
+ * Coarse-grained motion classification, as decided on the phone (which fuses
+ * raw IMU samples it receives from the wearable over Bluetooth). The dashboard
+ * uses this to drive the 3D mannequin animation on `/motion`. Unknown values
+ * — and `null` — collapse to `"Stationary"` so the figure always has a safe
+ * pose to render.
+ */
+export type Activity = "Walking" | "Running" | "Stationary" | "Falling";
+
+/** All activity values the dashboard understands. */
+export const ACTIVITIES: readonly Activity[] = [
+  "Walking",
+  "Running",
+  "Stationary",
+  "Falling",
+] as const;
+
+/** One telemetry sample, as inserted into Supabase by the wearable. */
+export interface Telemetry {
+  /** Heart rate, BPM — 0 when no finger is on the sensor. */
+  hr: number;
+  /** Blood-oxygen saturation, % — 0 when no finger is on the sensor. */
+  spo2: number;
+  /** Skin / ambient temperature, °C. */
+  temp: number;
+  /** Derived stress index, 1–10. */
+  stress: number;
+  /** Battery voltage, V. */
+  batt_v: number;
+  /** Battery charge, %. */
+  batt_pct: number;
+  /** Accelerometer, g. */
+  ax: number;
+  ay: number;
+  az: number;
+  /** Gyroscope, °/s. */
+  gx: number;
+  gy: number;
+  gz: number;
+  /** Coarse motion state — drives the mannequin animation. */
+  activity: Activity;
+}
+
+/** Classifies a reading against a normal band. */
+function band(value: number, low: number, high: number): VitalStatus {
+  if (value < low) return "low";
+  if (value > high) return "elevated";
+  return "normal";
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * Folds a telemetry row into the app's `DeviceSnapshot`.
+ *
+ * `hr` / `spo2` of 0 mean "no finger on the sensor" — the last good reading
+ * is kept rather than showing a misleading zero. The fall latch is driven
+ * by `fall_events` rows, not by this function.
+ */
+export function applyTelemetry(
+  prev: DeviceSnapshot,
+  t: Telemetry,
+  now: Date,
+): DeviceSnapshot {
+  // The device reports stress on a 1–10 scale; the app works in 0–100.
+  const stressIndex = Math.round(t.stress * 10);
+  return {
+    ...prev,
+    connected: true,
+    lastCheckedAt: now.toISOString(),
+    heartRate:
+      t.hr > 0
+        ? { value: Math.round(t.hr), status: band(t.hr, 60, 100) }
+        : prev.heartRate,
+    oxygen:
+      t.spo2 > 0
+        ? { value: Math.round(t.spo2), status: band(t.spo2, 95, 100) }
+        : prev.oxygen,
+    bodyTemperature: { value: round1(t.temp), status: band(t.temp, 36.1, 37.2) },
+    stress: {
+      value: stressIndex,
+      status: stressIndex > 40 ? "elevated" : "normal",
+    },
+    battery: {
+      ...prev.battery,
+      percent: Math.round(t.batt_pct),
+      voltage: t.batt_v,
+    },
+  };
+}
