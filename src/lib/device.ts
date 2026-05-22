@@ -245,3 +245,4 @@ export function batteryStatus(b: BatteryInfo): BatteryStatus {
   if (b.charging) return "charging";
   return batteryLevel(b);
 }
+
