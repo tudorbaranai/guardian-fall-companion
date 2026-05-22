@@ -110,8 +110,14 @@ export function applyTelemetry(
   t: Telemetry,
   now: Date,
 ): DeviceSnapshot {
-  // The device reports stress on a 1–10 scale; the app works in 0–100.
-  const stressIndex = Math.round(t.stress * 10);
+  // Stress arrives in two firmware versions: older devices ship a 0–10
+  // index, newer ones already report on the 0–100 scale the UI uses. We
+  // detect the scale by magnitude — any value above 10 must already be on
+  // the 0–100 scale because a 0–10 reading can never exceed 10.
+  const stressIndex = Math.min(
+    100,
+    Math.round(t.stress > 10 ? t.stress : t.stress * 10),
+  );
   return {
     ...prev,
     connected: true,
@@ -124,8 +130,12 @@ export function applyTelemetry(
       t.spo2 > 0
         ? { value: Math.round(t.spo2), status: band(t.spo2, 95, 100) }
         : prev.oxygen,
-    // Wrist skin temperature — normal ≈ 31 °C.
-    bodyTemperature: { value: round1(t.temp), status: band(t.temp, 30, 32.5) },
+    // Wrist skin temperature — normal ≈ 31 °C. Keep the last good value
+    // when the firmware ships a partial row with no temperature.
+    bodyTemperature:
+      t.temp > 0
+        ? { value: round1(t.temp), status: band(t.temp, 30, 32.5) }
+        : prev.bodyTemperature,
     stress: {
       value: stressIndex,
       status: stressIndex > 40 ? "elevated" : "normal",
@@ -133,7 +143,8 @@ export function applyTelemetry(
     battery: {
       ...prev.battery,
       percent: Math.round(t.batt_pct),
-      voltage: t.batt_v,
+      // 0 V means "not reported in this row" — keep the previous reading.
+      voltage: t.batt_v > 0 ? t.batt_v : prev.battery.voltage,
     },
     // Wellness fields — keep the last good value when a row arrives with
     // nulls, so the Overview doesn't blink to blank between partial rows.

@@ -61,13 +61,26 @@ function n(v: unknown): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-/** Normalize the raw `activity` column to a known enum value. The phone may
- *  send `null`, an unknown label, or future labels we don't render yet — all
- *  collapse to "Stationary" so the mannequin always has a safe pose. */
-function activityOf(raw: unknown): Activity {
-  return typeof raw === "string" && VALID_ACTIVITIES.has(raw)
-    ? (raw as Activity)
-    : "Stationary";
+/** Derive the activity from the wearable's row.
+ *
+ * The firmware writes the activity in two formats:
+ *   - the legacy `activity` string column (most rows leave it null), AND
+ *   - four exclusive boolean-ish smallint flags: `stationary`, `walking`,
+ *     `running`, and the `fall_state` column which doubles as "Falling".
+ *
+ * We trust the flags first (that's what the current firmware writes) and
+ * fall back to the legacy string. Unknown values collapse to "Stationary"
+ * so the mannequin always has a safe pose. */
+function activityOf(row: Record<string, unknown>): Activity {
+  if (row.fall_state === 1) return "Falling";
+  if (row.running === 1) return "Running";
+  if (row.walking === 1) return "Walking";
+  if (row.stationary === 1) return "Stationary";
+  const raw = row.activity;
+  if (typeof raw === "string" && VALID_ACTIVITIES.has(raw)) {
+    return raw as Activity;
+  }
+  return "Stationary";
 }
 
 /** The on-device classifier writes posture as a smallint 0–3. */
@@ -87,14 +100,25 @@ function intOrNull(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+/** Pass-through for numeric columns that may legitimately be null — the row
+ *  is partial (sensor not connected, firmware skipped the field) and we want
+ *  to keep the dashboard's last good value rather than overwrite with a 0. */
+function nullable(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
 function rowToEvent(row: TelemetryRow): TelemetryEvent {
   const r = row as unknown as Record<string, unknown>;
   const reading: Telemetry = {
-    hr: n(row.hr),
-    spo2: n(row.spo2),
-    temp: n(row.temp),
-    stress: n(row.stress),
-    batt_v: n(row.batt_v),
+    // Vitals — keep null when the firmware skipped them. applyTelemetry
+    // already knows to retain the previous reading on null/zero hr & spo2;
+    // we extend the same treatment to temp and batt_v so a partial row
+    // doesn't blank the card to "0.0°C / 0V".
+    hr: nullable(row.hr) ?? 0,
+    spo2: nullable(row.spo2) ?? 0,
+    temp: nullable(row.temp) ?? 0,
+    stress: nullable(row.stress) ?? 0,
+    batt_v: nullable(row.batt_v) ?? 0,
     batt_pct: n(row.batt_pct),
     ax: n(row.ax),
     ay: n(row.ay),
@@ -104,7 +128,7 @@ function rowToEvent(row: TelemetryRow): TelemetryEvent {
     gx: n(row.gx),
     gy: n(row.gy),
     gz: n(row.gz),
-    activity: activityOf(r.activity),
+    activity: activityOf(r),
     posture: postureOf(r.posture),
     sleepState: sleepOf(r.sleep_state),
     stepCount: intOrNull(r.step_count),
