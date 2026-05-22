@@ -143,7 +143,10 @@ export function applyTelemetry(
     battery: {
       ...prev.battery,
       percent: Math.round(t.batt_pct),
-      // 0 V means "not reported in this row" — keep the previous reading.
+      // 0 V means the firmware didn't ship the column — keep the previous
+      // reading (which stays 0 if it never arrived). The Battery card
+      // renders "—" for non-positive voltages so the missing data is
+      // visible rather than silently displayed as "0.00 V".
       voltage: t.batt_v > 0 ? t.batt_v : prev.battery.voltage,
     },
     // Wellness fields — keep the last good value when a row arrives with

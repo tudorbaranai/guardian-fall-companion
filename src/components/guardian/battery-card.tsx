@@ -85,7 +85,9 @@ export function BatteryCard({
 
   const ancillary = battery.charging
     ? "Charging steadily"
-    : `Discharging at ${battery.dischargeRatePerHour}%/hr`;
+    : battery.dischargeRatePerHour > 0
+      ? `Discharging at ${battery.dischargeRatePerHour}%/hr`
+      : "Discharge rate — not reported";
 
   if (noReadings) {
     return (
@@ -169,7 +171,11 @@ export function BatteryCard({
       {/* Telemetry */}
       <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3">
         <Meta label="Time remaining" value={timeRemainingLabel(battery)} />
-        <Meta label="Voltage" value={battery.voltage.toFixed(2)} suffix="V" />
+        <Meta
+          label="Voltage"
+          value={battery.voltage > 0 ? battery.voltage.toFixed(2) : "—"}
+          suffix={battery.voltage > 0 ? "V" : undefined}
+        />
       </div>
 
       {/* Footer reminder — hidden when the device is offline, since the
