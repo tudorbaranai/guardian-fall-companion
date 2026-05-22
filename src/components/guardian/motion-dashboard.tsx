@@ -41,16 +41,6 @@ const REST: Telemetry = {
   fallState: null, timeLeftMin: null,
 };
 
-// ── Inline icons ───────────────────────────────────────────────────────────
-type IconProps = { c: string };
-const Icons = {
-  Cal: ({ c }: IconProps) => (
-    <svg width="15" height="15" viewBox="0 0 14 14" fill="none" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7" cy="7" r="4.5" /><path d="M7 2.5 v9 M2.5 7 h9" />
-    </svg>
-  ),
-};
-
 function elapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -145,18 +135,23 @@ function ActivityPicker({
 export function MotionDashboard() {
   const { snapshot, telemetry, simulate } = useDevice();
   const [clock, setClock] = useState(() => new Date());
-  const [calibrating, setCalibrating] = useState(false);
   // When set, the picker overrides the activity reported by the wearable —
   // used for demoing the four animations without waiting for the phone-app
   // classifier to send the right label. `null` = follow live telemetry.
   const [activityOverride, setActivityOverride] = useState<Activity | null>(
     null,
   );
-  // Calibration baseline — the roll/pitch captured when the user pressed
-  // "Calibrate". Subtracted from subsequent readings so the wearable's
-  // mounting tilt is treated as the new zero and the mannequin stands
-  // upright at rest regardless of how the IMU is oriented on the body.
+  // Calibration baseline — captured automatically on the first real telemetry
+  // row. Subtracted from subsequent readings so the wearable's mounting tilt
+  // is treated as the new zero and the mannequin stands upright at rest.
   const [baseline, setBaseline] = useState<{ roll: number; pitch: number } | null>(
+    null,
+  );
+  // Debounced activity — only flips after 2 consecutive rows agree on the new
+  // state. Stops the mannequin from flickering between animations if the
+  // firmware classifier spits out one stray row.
+  const [stableActivity, setStableActivity] = useState<Activity>("Stationary");
+  const pendingActivity = useRef<{ activity: Activity; count: number } | null>(
     null,
   );
 
@@ -170,7 +165,27 @@ export function MotionDashboard() {
   const live = snapshot.connected && telemetry !== null;
   const d = telemetry ?? REST;
 
-  const effectiveActivity: Activity = activityOverride ?? d.activity;
+  // Debounce live activity transitions — accept a new state only after we've
+  // seen it in 2 consecutive telemetry rows. The override (manual picker)
+  // still bypasses this so the operator can demo any animation instantly.
+  useEffect(() => {
+    if (!telemetry) return;
+    const incoming = telemetry.activity;
+    if (incoming === stableActivity) {
+      pendingActivity.current = null;
+      return;
+    }
+    const p = pendingActivity.current;
+    if (p && p.activity === incoming) {
+      // Second consecutive row with this state — commit the change.
+      setStableActivity(incoming);
+      pendingActivity.current = null;
+    } else {
+      pendingActivity.current = { activity: incoming, count: 1 };
+    }
+  }, [telemetry, stableActivity]);
+
+  const effectiveActivity: Activity = activityOverride ?? stableActivity;
 
   // Orientation from the accelerometer (gravity vector). Standard Z-up
   // convention — REST (ax=0, ay=0, az=1) gives a clean 0 tilt. Real device
@@ -191,8 +206,7 @@ export function MotionDashboard() {
   // Auto-calibrate the first time real telemetry arrives. The wearable's
   // mounting offset (which axis is "down" on the body) varies device-to-
   // device, so we treat whatever the first reading reports as "upright"
-  // and animate tilt relative to that. The user can re-zero with the
-  // Calibrate button.
+  // and animate tilt relative to that.
   const autoCalibratedRef = useRef(false);
   useEffect(() => {
     if (autoCalibratedRef.current) return;
@@ -232,16 +246,6 @@ export function MotionDashboard() {
     : live
       ? "Six axes are inside the expected envelope."
       : "No live telemetry from the wearable yet.";
-
-  function calibrate() {
-    // Snapshot the current orientation as the new zero, and force the
-    // mannequin into Stationary so any in-flight Falling/Walking pose is
-    // released — the figure pops back to a clean upright breathing pose.
-    setBaseline({ roll: rawRoll, pitch: rawPitch });
-    setActivityOverride("Stationary");
-    setCalibrating(true);
-    setTimeout(() => setCalibrating(false), 3000);
-  }
 
   return (
     <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pb-[120px] pt-6 lg:px-8 lg:pb-8">
@@ -285,28 +289,6 @@ export function MotionDashboard() {
             onChange={setActivityOverride}
             liveValue={d.activity}
           />
-
-          <button
-            type="button"
-            onClick={calibrate}
-            disabled={calibrating}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 16px",
-              borderRadius: 999,
-              border: `1px solid ${C.divider}`,
-              background: "#fff",
-              color: C.ink,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: calibrating ? "default" : "pointer",
-            }}
-          >
-            <Icons.Cal c={C.ink} />
-            {calibrating ? "Calibrating…" : "Calibrate"}
-          </button>
 
           {fallen && (
             <button
