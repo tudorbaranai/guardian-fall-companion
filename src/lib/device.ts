@@ -53,6 +53,9 @@ export interface BatteryInfo {
   voltage: number;
   /** The caregiver is notified once the level drops below this percent. */
   lowThreshold: number;
+  /** Minutes of runtime left, as estimated by the firmware. Null until
+   *  the device starts reporting it. */
+  timeLeftMin: number | null;
 }
 
 /** The full payload exchanged with the wearable microcontroller. */
@@ -124,6 +127,7 @@ export function emptySnapshot(): DeviceSnapshot {
       percent: 0,
       charging: false,
       dischargeRatePerHour: 0,
+      timeLeftMin: null,
       voltage: 0,
       lowThreshold: 20,
     },
@@ -165,6 +169,8 @@ export function defaultSnapshot(now: Date = new Date()): DeviceSnapshot {
       percent: 78,
       charging: false,
       dischargeRatePerHour: 2.1,
+      // ~37 hours at 2.1 %/hr discharge — plausible demo runtime.
+      timeLeftMin: 2220,
       voltage: 3.92,
       lowThreshold: 20,
     },

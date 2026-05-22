@@ -38,7 +38,7 @@ const REST: Telemetry = {
   posture: null, sleepState: null,
   stepCount: null, cadenceSpm: null,
   hrvRmssd: null, restingHr: null,
-  fallState: null,
+  fallState: null, timeLeftMin: null,
 };
 
 // ── Inline icons ───────────────────────────────────────────────────────────

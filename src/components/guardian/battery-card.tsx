@@ -25,14 +25,21 @@ const PILL_LABEL = {
   charging: "Charging",
 } as const;
 
-/** Estimated time left, derived from the level and the discharge rate. */
+/**
+ * Time left, sourced directly from the wearable's `time_left_min` column.
+ * The firmware tracks its own current draw, so it produces a more honest
+ * estimate than anything we could derive from the percent log alone.
+ */
 function timeRemainingLabel(b: BatteryInfo): string {
   if (b.charging) return "Charging";
-  if (b.dischargeRatePerHour <= 0) return "—";
-  const total = Math.round(b.percent / b.dischargeRatePerHour);
-  const days = Math.floor(total / 24);
-  const hours = total % 24;
-  return days > 0 ? `~ ${days}d ${hours}h` : `~ ${hours}h`;
+  if (b.timeLeftMin === null || b.timeLeftMin <= 0) return "—";
+  const total = b.timeLeftMin;
+  const days = Math.floor(total / (60 * 24));
+  const hours = Math.floor((total - days * 60 * 24) / 60);
+  const minutes = total - days * 60 * 24 - hours * 60;
+  if (days > 0) return `~ ${days}d ${hours}h`;
+  if (hours > 0) return `~ ${hours}h ${minutes}m`;
+  return `~ ${minutes}m`;
 }
 
 function Meta({
