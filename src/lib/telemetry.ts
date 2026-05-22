@@ -87,6 +87,9 @@ export interface Telemetry {
   restingHr: number | null;
   /** On-device fall classifier — 1 means a fall is currently confirmed. */
   fallState: 0 | 1 | null;
+  /** Battery runtime estimate from the firmware (minutes). Null until the
+   *  device starts reporting it. */
+  timeLeftMin: number | null;
 }
 
 /** Classifies a reading against a normal band. */
@@ -148,6 +151,11 @@ export function applyTelemetry(
       // renders "—" for non-positive voltages so the missing data is
       // visible rather than silently displayed as "0.00 V".
       voltage: t.batt_v > 0 ? t.batt_v : prev.battery.voltage,
+      // Time-left comes straight from the firmware now — the device knows
+      // its own current draw better than we ever could from a percent-only
+      // log. Null leaves the previous reading visible so a partial row
+      // doesn't blank the card.
+      timeLeftMin: t.timeLeftMin ?? prev.battery.timeLeftMin,
     },
     // Wellness fields — keep the last good value when a row arrives with
     // nulls, so the Overview doesn't blink to blank between partial rows.

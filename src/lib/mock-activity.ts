@@ -47,6 +47,7 @@ export function mockMotionAxes(elapsedSeconds: number): Pick<
   | "hrvRmssd"
   | "restingHr"
   | "fallState"
+  | "timeLeftMin"
 > {
   const { activity, phaseSeconds } = loopPosition(elapsedSeconds);
   // Approximate cumulative step count — Walking adds steps fast, Running
@@ -59,6 +60,9 @@ export function mockMotionAxes(elapsedSeconds: number): Pick<
     hrvRmssd: 58,
     restingHr: 64,
     fallState: 0 as const,
+    // ~37 hours of runtime, gently counting down so the readout doesn't
+    // feel frozen during long demos.
+    timeLeftMin: Math.max(60, 2220 - Math.floor(elapsedSeconds / 60)),
   };
 
   if (activity === "Walking") {

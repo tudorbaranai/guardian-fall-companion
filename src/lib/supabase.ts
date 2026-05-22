@@ -136,6 +136,7 @@ function rowToEvent(row: TelemetryRow): TelemetryEvent {
     hrvRmssd: intOrNull(r.hrv_rmssd),
     restingHr: intOrNull(r.resting_hr),
     fallState: r.fall_state === 1 ? 1 : r.fall_state === 0 ? 0 : null,
+    timeLeftMin: intOrNull(r.time_left_min),
   };
   return { reading, at: new Date(row.recorded_at) };
 }
