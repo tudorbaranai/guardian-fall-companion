@@ -263,6 +263,35 @@ Two teammates per cross-cutting concern — nothing single-bus-factor.
 - **Supabase** (schema + RLS + realtime config): Tudor + Stas
 - **Hardware build** (wiring, enclosure fit, on-bench bring-up): Stas + Victor
 
+## Security model — this is a portfolio / demo build
+
+This project was built to win a hardware competition and ship as a public
+portfolio piece. It is **not** a production medical device. A few intentional
+trade-offs are worth calling out so a reader doesn't draw the wrong
+conclusion:
+
+- The Supabase publishable (anon) key is shipped to the browser. Row-Level
+  Security restricts writes to a single known `device_id`, but anyone who
+  reads the repo can spoof telemetry / fall events for that device. This is
+  acceptable for a single-device demo; a production fleet would move
+  ingestion behind a service-role key on a server route, or scope RLS by a
+  per-device JWT claim.
+- `/api/notify` only accepts requests with a same-origin `Origin` header
+  and caps recipients per call. That's good enough to block casual
+  scripted abuse, but Origin is spoofable from `curl`. The endpoint is
+  currently safe because no `RESEND_API_KEY` is set in production — it
+  runs in logged-only mode. Don't set the Resend key without first adding
+  real auth (CSRF token, server-issued nonce, or a dedicated phone-bridge
+  service role).
+- The firmware's BLE service is unpaired and unauthenticated. Any device
+  within ~10 m can connect, read vitals, and write the `alert_off` command
+  to silence a real alarm. The README inside `firmware/` warns about the
+  demo UUID; the lack of pairing / encryption is the same kind of demo
+  trade-off and any production build must add `BLESecurity` bonding.
+- Security headers (CSP, X-Frame-Options, etc.) are configured in
+  [`next.config.ts`](next.config.ts). They're reasonable defaults; tighten
+  CSP further if you add third-party embeds.
+
 ## License
 
 [MIT](LICENSE) © 2026 Tudor Baranai and the Sudo team — applies to the
