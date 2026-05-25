@@ -25,25 +25,32 @@ import {
 
 const VALID_ACTIVITIES = new Set<string>(ACTIVITIES);
 
-// Both must be present at build time — see `.env.example` for the contract.
-// We refuse to fall back to a hard-coded project so a public clone can't
-// accidentally write into someone else's tables.
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error(
-    "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and " +
-      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment (see .env.example).",
-  );
-}
-
 /** Single device for this build; the schema is keyed by `device_id`. */
 const DEVICE_ID = "device01";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false },
-});
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+// We can't throw at module-eval time — Next.js prerenders static pages
+// that import this module without ever calling Supabase (e.g. /_not-found),
+// and throwing would fail the whole build on platforms that provide env
+// vars only at runtime. Construct the client with placeholder values when
+// the real ones are missing; the actual network call will then fail with a
+// clear "lookup failed" error rather than a build-time crash. A public
+// clone still can't accidentally write into the team's tables because the
+// placeholder URL doesn't resolve.
+if (typeof window !== "undefined" && (!SUPABASE_URL || !SUPABASE_KEY)) {
+  console.error(
+    "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and " +
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (see .env.example).",
+  );
+}
+
+const supabase = createClient(
+  SUPABASE_URL || "https://missing-env-var.invalid",
+  SUPABASE_KEY || "missing-env-var",
+  { auth: { persistSession: false } },
+);
 
 // ── Telemetry ──────────────────────────────────────────────────────────────
 
