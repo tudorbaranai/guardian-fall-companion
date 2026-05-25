@@ -7,9 +7,10 @@
  * web app is the *caregiver companion* — it only renders state and exposes
  * a few caregiver-side actions.
  *
- * The microcontroller pushes readings to `POST /api/device`; this app reads
- * them back with `GET /api/device`. `DeviceSnapshot` is the contract between
- * the firmware and the UI — keep it in sync with the device payload.
+ * Telemetry reaches Supabase via an out-of-scope phone bridge; the browser
+ * subscribes to `telemetry_readings` and `fall_events` via Supabase Realtime
+ * — see `src/lib/supabase.ts`. `DeviceSnapshot` is the UI-facing contract
+ * the snapshot ingestion folds rows into.
  * ───────────────────────────────────────────────────────────────────────────
  */
 

@@ -270,8 +270,12 @@ caregiver web app, schema, and documentation in this repository.
 
 The firmware in [`firmware/`](firmware/) is the work of Robu Gabriel and is
 **all-rights-reserved** (the upstream repo carries no licence); it is
-included here with his agreement as a teammate. See
+included as part of the team's competition deliverable. See
 [`firmware/CREDITS.md`](firmware/CREDITS.md) for the full attribution.
 
 The Edge Impulse SDK vendored under `firmware/src/merged/edge-impulse-sdk/`
 ships under its own Apache 2.0 licence — see headers inside that folder.
+
+> **Security note** — the BLE service UUID in `firmware/src/main.cpp`
+> (`f00dbabe-…`) is a demo identifier. Any device rebuilt from this snapshot
+> must change it before a real deployment so a stranger's app can't latch on.
