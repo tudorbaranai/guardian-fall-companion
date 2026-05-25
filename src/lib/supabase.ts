@@ -25,12 +25,18 @@ import {
 
 const VALID_ACTIVITIES = new Set<string>(ACTIVITIES);
 
-const SUPABASE_URL =
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??
-  "https://aryrakxdxxvkhisdsnba.supabase.co";
-const SUPABASE_KEY =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-  "sb_publishable_WOTm7ejlZ-M9jLxD_T2d_A_VMsXxlRE";
+// Both must be present at build time — see `.env.example` for the contract.
+// We refuse to fall back to a hard-coded project so a public clone can't
+// accidentally write into someone else's tables.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error(
+    "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and " +
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in your environment (see .env.example).",
+  );
+}
 
 /** Single device for this build; the schema is keyed by `device_id`. */
 const DEVICE_ID = "device01";
