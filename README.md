@@ -1,8 +1,12 @@
+<div align="center">
+
 # Guardian — Fall-Detection Wearable & Caregiver Companion
 
-> 🏆 **1st place out of 16 teams — HARD & SOFT Suceava 2026** · team **_Sudo_** (Suceava 2)
->
-> 🌐 **Live demo:** <https://guardian-companion.tech>
+🏆 **1st place out of 16 teams — HARD & SOFT Suceava 2026** · team **_Sudo_** (Suceava 2)
+
+### [🌐 Open the live caregiver dashboard →](https://guardian-companion.tech)
+
+</div>
 
 A wearable fall-detection and vital-monitoring device for elderly users, plus
 a real-time caregiver dashboard that streams its telemetry over Supabase. The
@@ -43,19 +47,32 @@ hardware–software integration · user experience and technical documentation.
 
 ## The system in one diagram
 
-```
-                                                          ┌────────────────┐
-                                                          │   Caregiver    │
-                                                          │   web app      │
-ESP32 wearable                                            │  (this repo)   │
-─ on-device fall detection (Edge AI)                      └───────▲────────┘
-─ HR / SpO₂ / temp / IMU @ 100 Hz       Realtime                  │
-─ 9-page OLED · LEDs · buzzer                                     │
-─ BLE telemetry @ 2 Hz             BLE              Phone bridge  │
-    │                            ──────▶            ──HTTPS──▶    │
-    ▼                                                              ▼
-  Local alarm (buzzer + red LED)                          Supabase Postgres
-  Independent of any cloud                          telemetry_readings · fall_events
+```mermaid
+flowchart LR
+    subgraph Wearable["🛡️ ESP32 wearable"]
+        direction TB
+        Sensors["IMU · HR · SpO₂ · Temp<br/>sampled @ 100 Hz"]
+        Edge["On-device Edge AI<br/>(2 Edge Impulse impulses)"]
+        Local["Local alarm<br/>buzzer + red LED + OLED"]
+        Sensors --> Edge --> Local
+    end
+
+    Bridge["📱 Phone bridge<br/><i>(out of scope)</i>"]
+    DB[("🗄️ Supabase Postgres<br/>telemetry_readings<br/>fall_events")]
+    Web["💻 Caregiver web app<br/><a href='https://guardian-companion.tech'>guardian-companion.tech</a><br/><i>(this repo)</i>"]
+
+    Wearable -- "BLE @ 2 Hz" --> Bridge
+    Bridge -- "HTTPS INSERT" --> DB
+    DB -- "Realtime WebSocket" --> Web
+
+    classDef device fill:#dfeaf6,stroke:#3a6a9c,color:#0d2238
+    classDef offRepo fill:#f3eef8,stroke:#7c5fa7,color:#231541
+    classDef cloud fill:#e8f1e4,stroke:#5b8a3f,color:#1f3814
+    classDef ui fill:#fde9c4,stroke:#c2851b,color:#3a2a06
+    class Wearable,Sensors,Edge,Local device
+    class Bridge offRepo
+    class DB cloud
+    class Web ui
 ```
 
 Three independent layers:
@@ -172,7 +189,14 @@ training distribution.
 
 ![Edge Impulse training metrics — Model B (fall classifier)](docs/screenshots/ai-training.jpeg)
 
-Short demo of the training session: [`docs/media/ai-training.mp4`](docs/media/ai-training.mp4).
+**Short demo of the training session** — recorded while the dataset was
+being labelled in Edge Impulse Studio:
+
+<video src="docs/media/ai-training.mp4" controls width="640"></video>
+
+> If your viewer doesn't render the inline player above, the file is at
+> [`docs/media/ai-training.mp4`](docs/media/ai-training.mp4) — download or
+> open the raw URL.
 
 Full dataset recipe, impulse design and tuning notes are in
 [`docs/REPLICATE.md → Section 2`](docs/REPLICATE.md#2-ai--train-the-two-edge-impulse-impulses).
