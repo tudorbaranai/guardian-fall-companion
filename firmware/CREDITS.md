@@ -32,10 +32,10 @@ session is at [`docs/media/ai-training.mp4`](../docs/media/ai-training.mp4).
 ## License
 
 The upstream firmware repo carries no explicit licence and is treated as
-**all-rights-reserved by Robu Gabriel**. This snapshot is included with
-Gabriel's agreement as a teammate on the project. If you want to reuse the
-firmware code outside the context of this repository, contact Gabriel
-directly.
+**all-rights-reserved by Robu Gabriel**. This snapshot is included as part
+of the team's competition deliverable. If you want to reuse the firmware
+code outside the context of this repository, contact Gabriel directly via
+the upstream repo.
 
 The Edge Impulse SDK vendored under `src/merged/edge-impulse-sdk/` carries
 its own Apache 2.0 licence (see headers inside that folder).

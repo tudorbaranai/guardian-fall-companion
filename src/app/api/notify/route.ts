@@ -23,6 +23,18 @@ import type { CareContactRecord } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
+// Browser-only endpoint. Direct curl-style POSTs would otherwise let anyone
+// burn the team's Resend quota and spam arbitrary recipients with fake fall
+// alerts. We require `Origin` to be one of our own deployments (browsers send
+// it automatically; curl does not unless explicitly spoofed) and cap the
+// recipient count so a single accepted request can't fan out to a list.
+const ALLOWED_ORIGINS = new Set([
+  "https://guardian-companion.tech",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+]);
+const MAX_RECIPIENTS_PER_REQUEST = 10;
+
 interface NotifyBody {
   contacts: CareContactRecord[];
   personName: string;
@@ -61,6 +73,14 @@ async function sendOne(opts: {
 }
 
 export async function POST(request: Request) {
+  // Origin allowlist — blocks plain curl / cross-site invocations. Browsers
+  // always include Origin on cross-origin and same-origin fetches with a body,
+  // so the legitimate caller in `device-provider.tsx` always passes.
+  const origin = request.headers.get("origin");
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   let body: NotifyBody;
   try {
     body = (await request.json()) as NotifyBody;
@@ -68,7 +88,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const recipients = (body.contacts ?? []).filter((c) => c.email?.includes("@"));
+  const recipients = (body.contacts ?? [])
+    .filter((c) => c.email?.includes("@"))
+    .slice(0, MAX_RECIPIENTS_PER_REQUEST);
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL ?? "Guardian <onboarding@resend.dev>";
 

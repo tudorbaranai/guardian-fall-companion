@@ -231,7 +231,7 @@ export function Sidebar() {
         {!collapsed && (
           <div>
             <div className="text-[14px] font-bold leading-tight text-ink">
-              Sofia Popescu
+              Sofia
             </div>
             <div className="text-[11px] text-ink-3">Caregiver</div>
           </div>
