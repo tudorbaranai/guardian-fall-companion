@@ -390,15 +390,18 @@ export async function fetchActivityDurations(): Promise<ActivityDurations> {
   };
 
   try {
+    // We need both the legacy `activity` text column and the boolean-ish
+    // smallint flags (`stationary/walking/running/fall_state`) because
+    // `activityOf` prefers the flags and only falls back to the string.
     const { data } = await supabase
       .from("telemetry_readings")
-      .select("recorded_at, activity")
+      .select("recorded_at, activity, stationary, walking, running, fall_state")
       .eq("device_id", DEVICE_ID)
       .gte("recorded_at", dayStart.toISOString())
       .order("recorded_at", { ascending: true })
       .limit(20_000);
 
-    const rows = (data as { recorded_at: string; activity: string | null }[] | null) ?? [];
+    const rows = (data as Record<string, unknown>[] | null) ?? [];
     if (rows.length === 0) return empty;
 
     const MAX_DELTA_S = 5 * 60;
@@ -411,16 +414,15 @@ export async function fetchActivityDurations(): Promise<ActivityDurations> {
     let total = 0;
 
     for (let i = 0; i < rows.length; i++) {
-      const tStart = new Date(rows[i].recorded_at).getTime();
+      const tStart = new Date(rows[i].recorded_at as string).getTime();
       const tEnd =
         i + 1 < rows.length
-          ? new Date(rows[i + 1].recorded_at).getTime()
+          ? new Date(rows[i + 1].recorded_at as string).getTime()
           : dayEnd.getTime();
       const deltaS = Math.min((tEnd - tStart) / 1000, MAX_DELTA_S);
       if (deltaS <= 0) continue;
 
-      const raw = rows[i].activity;
-      const act: Activity = activityOf(raw);
+      const act: Activity = activityOf(rows[i]);
       byActivity[act] += deltaS;
       total += deltaS;
     }
