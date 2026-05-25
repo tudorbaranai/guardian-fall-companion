@@ -151,11 +151,10 @@ export function applyTelemetry(
       // renders "—" for non-positive voltages so the missing data is
       // visible rather than silently displayed as "0.00 V".
       voltage: t.batt_v > 0 ? t.batt_v : prev.battery.voltage,
-      // Time-left comes straight from the firmware now — the device knows
-      // its own current draw better than we ever could from a percent-only
-      // log. Null leaves the previous reading visible so a partial row
-      // doesn't blank the card.
-      timeLeftMin: t.timeLeftMin ?? prev.battery.timeLeftMin,
+      // `timeLeftMin`, `dischargeRatePerHour` and `charging` are computed
+      // locally from a rolling buffer of voltage samples — see
+      // `estimateRuntime` in lib/device.ts, applied in DeviceProvider after
+      // this fold runs. The firmware-reported `time_left_min` is ignored.
     },
     // Wellness fields — keep the last good value when a row arrives with
     // nulls, so the Overview doesn't blink to blank between partial rows.

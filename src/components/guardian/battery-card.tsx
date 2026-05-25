@@ -26,9 +26,11 @@ const PILL_LABEL = {
 } as const;
 
 /**
- * Time left, sourced directly from the wearable's `time_left_min` column.
- * The firmware tracks its own current draw, so it produces a more honest
- * estimate than anything we could derive from the percent log alone.
+ * Time left, computed locally from a rolling window of voltage samples —
+ * see `estimateRuntime` in `lib/device.ts`. The firmware's `time_left_min`
+ * column is ignored: it drifts and goes missing for long stretches, and
+ * voltage gives us better resolution than the chunky integer percent.
+ * Returns "—" until the buffer is wide enough to produce a confident slope.
  */
 function timeRemainingLabel(b: BatteryInfo): string {
   if (b.charging) return "Charging";
