@@ -239,6 +239,96 @@ export function secondsSince(iso: string, now: Date = new Date()): number {
 export type BatteryLevel = "healthy" | "low" | "critical";
 export type BatteryStatus = BatteryLevel | "charging";
 
+// ── Local runtime estimation ──────────────────────────────────────────────
+// The firmware ships its own `time_left_min` column, but it has been
+// observed to drift and to omit values for stretches. We compute the
+// estimate locally from a rolling window of recent voltage samples, since
+// voltage gives us much better resolution than the integer percent (a 5-hour
+// span typically shows only ~5 unique pct values but ~150 mV of voltage
+// swing).
+
+/** LiPo voltage envelope assumed by the firmware
+ *  (`firmware/.../GuardianWearable.ino`, VBAT_FULL / VBAT_EMPTY). */
+const BATT_FULL_V = 4.2;
+const BATT_EMPTY_V = 3.3;
+
+/** A single battery reading captured for runtime estimation. */
+export interface BatterySample {
+  /** ms epoch — when the reading landed. */
+  at: number;
+  /** Integer charge from the firmware, used for the headline number. */
+  pct: number;
+  /** Cell voltage, used to derive the discharge slope. */
+  v: number;
+}
+
+export interface BatteryEstimate {
+  /** Minutes remaining, or null when we don't yet have enough history /
+   *  the device is charging / the discharge rate is below the noise floor. */
+  timeLeftMin: number | null;
+  /** Local discharge slope, %/hour (positive while draining, 0 otherwise). */
+  dischargeRatePerHour: number;
+  /** True when voltage / percent is trending up enough to look like charging. */
+  charging: boolean;
+}
+
+/** Continuous percent derived from voltage using the firmware's linear curve.
+ *  Gives sub-integer resolution so we can measure a slope long before the
+ *  integer `batt_pct` ticks down. */
+function pctFromVoltage(v: number): number {
+  const p = ((v - BATT_EMPTY_V) / (BATT_FULL_V - BATT_EMPTY_V)) * 100;
+  return Math.max(0, Math.min(100, p));
+}
+
+/** Minimum window of history before we trust a slope (ms). Below this the
+ *  estimate is noise — show "—" and hold the previous value. */
+const MIN_WINDOW_MS = 5 * 60_000;
+/** Discharge rates below this (in %/h) are treated as "couldn't measure" so
+ *  a momentarily flat voltage doesn't produce an absurd "weeks remaining". */
+const MIN_RATE_PCT_PER_HOUR = 0.3;
+
+/**
+ * Estimate runtime from a buffer of recent battery samples.
+ *
+ * Strategy: oldest → newest linear slope on the voltage-derived percent.
+ * That signal is smooth (mV resolution) where `batt_pct` is chunky, so we
+ * can produce a usable estimate within minutes instead of waiting for the
+ * integer to tick down. Returns `null` for `timeLeftMin` when the data
+ * isn't yet conclusive — the caller should hold the previous value rather
+ * than display a fresh zero.
+ */
+export function estimateRuntime(samples: BatterySample[]): BatteryEstimate {
+  if (samples.length < 2) {
+    return { timeLeftMin: null, dischargeRatePerHour: 0, charging: false };
+  }
+  // Defensive sort — the buffer is appended in order, but a re-ordered
+  // realtime burst would otherwise corrupt the slope.
+  const sorted = [...samples].sort((a, b) => a.at - b.at);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const spanMs = last.at - first.at;
+  if (spanMs < MIN_WINDOW_MS) {
+    return { timeLeftMin: null, dischargeRatePerHour: 0, charging: false };
+  }
+  // Rising integer percent over the window ⇒ the wearable is on a charger.
+  // 1 point of tolerance keeps a single noisy reading from flipping the
+  // status mid-discharge.
+  if (last.pct - first.pct > 1) {
+    return { timeLeftMin: null, dischargeRatePerHour: 0, charging: true };
+  }
+  const hours = spanMs / 3_600_000;
+  const ratePerHour = (pctFromVoltage(first.v) - pctFromVoltage(last.v)) / hours;
+  if (ratePerHour < MIN_RATE_PCT_PER_HOUR) {
+    return { timeLeftMin: null, dischargeRatePerHour: 0, charging: false };
+  }
+  const timeLeftMin = Math.round((last.pct / ratePerHour) * 60);
+  return {
+    timeLeftMin,
+    dischargeRatePerHour: Math.round(ratePerHour * 10) / 10,
+    charging: false,
+  };
+}
+
 /** Charge-level bands shared by every battery display. */
 export function batteryLevel(b: Pick<BatteryInfo, "percent">): BatteryLevel {
   if (b.percent < 20) return "critical";

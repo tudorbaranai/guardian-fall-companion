@@ -11,6 +11,8 @@ import {
 import {
   defaultSnapshot,
   emptySnapshot,
+  estimateRuntime,
+  type BatterySample,
   type DeviceSnapshot,
 } from "@/lib/device";
 import { mockMotionAxes } from "@/lib/mock-activity";
@@ -119,6 +121,12 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const fallEventId = useRef<number | null>(null);
   const lastRowAt = useRef(0);
 
+  // Rolling battery-sample buffer used to compute runtime locally. We keep
+  // ~3 hours of (voltage, percent) so the slope settles on real wear rather
+  // than per-minute noise — see `estimateRuntime` in lib/device.ts.
+  const batterySamples = useRef<BatterySample[]>([]);
+  const BATTERY_BUFFER_MS = 3 * 60 * 60_000;
+
   /** Overlays the current fall latch onto a snapshot. */
   const withFall = useCallback((s: DeviceSnapshot): DeviceSnapshot => {
     if (!fallActive.current) return { ...s, status: "well", fallEvent: null };
@@ -134,9 +142,36 @@ export function DeviceProvider({ children }: { children: React.ReactNode }) {
   const ingestTelemetry = useCallback(
     (event: TelemetryEvent) => {
       lastRowAt.current = Date.now();
-      setSnapshot((prev) =>
-        withFall(applyTelemetry(prev, event.reading, event.at)),
-      );
+
+      // Feed the battery estimator. Only keep samples with a usable voltage
+      // (the writer occasionally ships partial rows with `batt_v = 0`) and
+      // drop anything outside the rolling window.
+      const at = event.at.getTime();
+      const v = event.reading.batt_v;
+      if (v > 0) {
+        batterySamples.current = [
+          ...batterySamples.current.filter((s) => at - s.at < BATTERY_BUFFER_MS),
+          { at, pct: event.reading.batt_pct, v },
+        ];
+      }
+      const est = estimateRuntime(batterySamples.current);
+
+      setSnapshot((prev) => {
+        const next = withFall(applyTelemetry(prev, event.reading, event.at));
+        return {
+          ...next,
+          battery: {
+            ...next.battery,
+            // The estimate returns null until the window/slope are usable —
+            // hold the previous value in that case so the card doesn't flash
+            // back to "—" between fresh readings.
+            timeLeftMin: est.timeLeftMin ?? prev.battery.timeLeftMin,
+            dischargeRatePerHour:
+              est.dischargeRatePerHour || prev.battery.dischargeRatePerHour,
+            charging: est.charging,
+          },
+        };
+      });
       setTelemetry(event.reading);
       setTelemetryHistory((h) => [...h, event.reading].slice(-HISTORY_LEN));
 
