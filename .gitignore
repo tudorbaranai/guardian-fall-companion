@@ -48,3 +48,7 @@ deploy.log
 img.png
 img_*.png
 *.screenshot.png
+
+# AI assistant instructions, kept local
+AGENTS.md
+CLAUDE.md

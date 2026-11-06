@@ -104,7 +104,6 @@ DSP feature block → 1-D ConvNet → `{ fall | not_fall }`.
 - **Validated results** (fall classifier): **94.2 % accuracy**, 0.94
   weighted F1, AUC 0.93; **2 ms inference**, 3.2 KB RAM, 50.7 KB flash on
   the 80 MHz ESP32 — see [`docs/screenshots/ai-training.jpeg`](screenshots/ai-training.jpeg)
-  and [`docs/media/ai-training.mp4`](media/ai-training.mp4)
 
 ### Deployment
 
