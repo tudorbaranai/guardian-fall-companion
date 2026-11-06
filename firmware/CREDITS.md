@@ -26,8 +26,7 @@ selection, and the multi-impulse C++ export that links into the firmware.
 
 The screenshot at [`docs/screenshots/ai-training.jpeg`](../docs/screenshots/ai-training.jpeg)
 shows the fall classifier's validation metrics (94.2 % accuracy, 0.94
-weighted F1, 2 ms inference on ESP32). A short demo video of the training
-session is at [`docs/media/ai-training.mp4`](../docs/media/ai-training.mp4).
+weighted F1, 2 ms inference on ESP32).
 
 ## License
 
