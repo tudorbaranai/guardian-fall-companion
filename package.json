@@ -1,6 +1,12 @@
 {
   "name": "guardian-app",
   "version": "0.1.0",
+  "description": "Caregiver dashboard for the Guardian fall-detection wearable (HARD & SOFT Suceava 2026, 1st place)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tudorbaranai/guardian-fall-companion.git"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",
