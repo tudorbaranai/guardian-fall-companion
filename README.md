@@ -2,9 +2,9 @@
 
 # Guardian — Fall-Detection Wearable & Caregiver Companion
 
-🏆 **1st place out of 16 teams — HARD & SOFT Suceava 2026** · team **_Sudo_** (Suceava 2)
+**1st place out of 16 teams at HARD & SOFT Suceava 2026**, team **Sudo** (Suceava 2)
 
-### [🌐 Open the live caregiver dashboard →](https://guardian-companion.tech)
+[Open the live caregiver dashboard](https://guardian-companion.tech)
 
 </div>
 
@@ -26,30 +26,16 @@ with credit), and the docs needed to replicate the system from scratch.
 
 ## The competition
 
-[**HARD & SOFT Suceava 2026**](https://www.hardandsoft.ro/) is an
-international embedded-systems competition hosted in Suceava, Romania, and
-sponsored by **Cognizant Mobility Romania** (17–24 May 2026). The 2026
-topic — _"Smart Fall Detection & Vital Monitoring Device for Elderly Care"_ —
-asked teams to design and build a reliable healthcare wearable that monitors
-vitals, detects falls in real time, and reacts autonomously under uncertain
-real-world conditions, **without external cloud dependency**.
-
-**Jury** — international panel chaired by Vlad Voiculescu (Cognizant
-Mobility, Munich), with Peter Scharff (TU Ilmenau, Germany), Oliver Faust
-(Ruskin University, Cambridge, UK), Sorin Bora (Cognizant Romania) and
-Alexandru Iovanovici (Universitatea Politehnica Timișoara).
-
-**Judging criteria** — core functionality and reliability · fall-detection
-performance · intelligent edge processing, security and robustness ·
-hardware–software integration · user experience and technical documentation.
-
-> _"Technology that reacts when it matters most."_
+Built for [HARD & SOFT Suceava 2026](https://www.hardandsoft.ro/),
+whose 2026 topic was a fall-detection and vital-monitoring wearable for
+elderly care that works without external cloud dependency. Jury, judging
+criteria and who did what: [`docs/COMPETITION.md`](docs/COMPETITION.md).
 
 ## The system in one diagram
 
 ```mermaid
 flowchart LR
-    subgraph Wearable["🛡️ ESP32 wearable"]
+    subgraph Wearable["ESP32 wearable"]
         direction TB
         Sensors["IMU · HR · SpO₂ · Temp<br/>sampled @ 100 Hz"]
         Edge["On-device Edge AI<br/>(2 Edge Impulse impulses)"]
@@ -57,9 +43,9 @@ flowchart LR
         Sensors --> Edge --> Local
     end
 
-    Bridge["📱 Phone bridge<br/><i>(out of scope)</i>"]
-    DB[("🗄️ Supabase Postgres<br/>telemetry_readings<br/>fall_events")]
-    Web["💻 Caregiver web app<br/><a href='https://guardian-companion.tech'>guardian-companion.tech</a><br/><i>(this repo)</i>"]
+    Bridge["Phone bridge<br/><i>(out of scope)</i>"]
+    DB[("Supabase Postgres<br/>telemetry_readings<br/>fall_events")]
+    Web["Caregiver web app<br/><a href='https://guardian-companion.tech'>guardian-companion.tech</a><br/><i>(this repo)</i>"]
 
     Wearable -- "BLE @ 2 Hz" --> Bridge
     Bridge -- "HTTPS INSERT" --> DB
@@ -189,15 +175,6 @@ training distribution.
 
 ![Edge Impulse training metrics — Model B (fall classifier)](docs/screenshots/ai-training.jpeg)
 
-**Short demo of the training session** — recorded while the dataset was
-being labelled in Edge Impulse Studio:
-
-<video src="docs/media/ai-training.mp4" controls width="640"></video>
-
-> If your viewer doesn't render the inline player above, the file is at
-> [`docs/media/ai-training.mp4`](docs/media/ai-training.mp4) — download or
-> open the raw URL.
-
 Full dataset recipe, impulse design and tuning notes are in
 [`docs/REPLICATE.md → Section 2`](docs/REPLICATE.md#2-ai--train-the-two-edge-impulse-impulses).
 
@@ -214,9 +191,9 @@ v4 · shadcn/ui + Radix · Atkinson Hyperlegible
 notifications)
 **Hosting** — Vercel · custom domain (guardian-companion.tech)
 
-## Rebuild this project from scratch
+## Getting started
 
-Full step-by-step guide: **[`docs/REPLICATE.md`](docs/REPLICATE.md)**
+The full rebuild guide is **[`docs/REPLICATE.md`](docs/REPLICATE.md)**
 (hardware → AI training → firmware → web app → phone bridge).
 
 For just the web app:
@@ -241,14 +218,12 @@ pio device monitor                    # serial @ 115200
 - [`docs/HARDWARE.md`](docs/HARDWARE.md) — bill of materials, ESP32 GPIO map, power notes
 - [`docs/REPLICATE.md`](docs/REPLICATE.md) — end-to-end rebuild guide
 - [`docs/FALL_FLOW.md`](docs/FALL_FLOW.md) — fall-to-reaction sequence with `file:line` refs
+- [`docs/SECURITY.md`](docs/SECURITY.md) — security model and demo trade-offs
+- [`docs/COMPETITION.md`](docs/COMPETITION.md) — the competition, jury and team split
 - [`firmware/README.md`](firmware/README.md) — full firmware docs (three-gate pipeline, FreeRTOS model, BLE protocol, OLED UI)
 - [`firmware/CREDITS.md`](firmware/CREDITS.md) — firmware attribution + AI-training notes
 
 ## Team — **Sudo** (Suceava 2)
-
-🏆 **1st place out of 16 teams** at HARD & SOFT Suceava 2026.
-
-Two teammates per cross-cutting concern — nothing single-bus-factor.
 
 | Member                       | Primary role                | Also worked on                                       |
 | ---------------------------- | --------------------------- | ---------------------------------------------------- |
@@ -257,40 +232,15 @@ Two teammates per cross-cutting concern — nothing single-bus-factor.
 | **Casciuc Stanislav** ("Stas") | Hardware — wiring, sensor integration, electrical bring-up | Supabase schema (with Tudor) |
 | **Victor Covaliov**          | Industrial design — 3D-printed wearable enclosure | Hardware assembly |
 
-**Cross-cutting work**
+## Known limitations
 
-- **AI training** (both Edge Impulse impulses): Tudor + Gabi
-- **Supabase** (schema + RLS + realtime config): Tudor + Stas
-- **Hardware build** (wiring, enclosure fit, on-bench bring-up): Stas + Victor
+This is a portfolio and demo build, **not** a production medical device:
 
-## Security model — this is a portfolio / demo build
+- The Supabase anon key is in the browser, so anyone can spoof telemetry for the demo device.
+- The wearable's BLE service is unpaired, so anyone nearby can read vitals or silence an alarm.
+- `/api/notify` has no real auth; it only logs because no email key is set in production.
 
-This project was built to win a hardware competition and ship as a public
-portfolio piece. It is **not** a production medical device. A few intentional
-trade-offs are worth calling out so a reader doesn't draw the wrong
-conclusion:
-
-- The Supabase publishable (anon) key is shipped to the browser. Row-Level
-  Security restricts writes to a single known `device_id`, but anyone who
-  reads the repo can spoof telemetry / fall events for that device. This is
-  acceptable for a single-device demo; a production fleet would move
-  ingestion behind a service-role key on a server route, or scope RLS by a
-  per-device JWT claim.
-- `/api/notify` only accepts requests with a same-origin `Origin` header
-  and caps recipients per call. That's good enough to block casual
-  scripted abuse, but Origin is spoofable from `curl`. The endpoint is
-  currently safe because no `RESEND_API_KEY` is set in production — it
-  runs in logged-only mode. Don't set the Resend key without first adding
-  real auth (CSRF token, server-issued nonce, or a dedicated phone-bridge
-  service role).
-- The firmware's BLE service is unpaired and unauthenticated. Any device
-  within ~10 m can connect, read vitals, and write the `alert_off` command
-  to silence a real alarm. The README inside `firmware/` warns about the
-  demo UUID; the lack of pairing / encryption is the same kind of demo
-  trade-off and any production build must add `BLESecurity` bonding.
-- Security headers (CSP, X-Frame-Options, etc.) are configured in
-  [`next.config.ts`](next.config.ts). They're reasonable defaults; tighten
-  CSP further if you add third-party embeds.
+What a production build would change: [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ## License
 
@@ -304,7 +254,3 @@ included as part of the team's competition deliverable. See
 
 The Edge Impulse SDK vendored under `firmware/src/merged/edge-impulse-sdk/`
 ships under its own Apache 2.0 licence — see headers inside that folder.
-
-> **Security note** — the BLE service UUID in `firmware/src/main.cpp`
-> (`f00dbabe-…`) is a demo identifier. Any device rebuilt from this snapshot
-> must change it before a real deployment so a stranger's app can't latch on.
