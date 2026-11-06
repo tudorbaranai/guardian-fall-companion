@@ -2,6 +2,7 @@
 
 The wearable that powers the Guardian dashboard. Built around the kit supplied
 by HARD & SOFT Suceava 2026: ESP32 + IMU + bio-hub + body-temperature sensor
+
 + OLED + LEDs + buzzer + Li-ion cell. All sensors talk over a single I²C bus,
 inputs/outputs are on the ESP32's general-purpose GPIOs, and battery voltage
 is read through a 2× resistor divider on an ADC pin.
@@ -30,7 +31,7 @@ is read through a 2× resistor divider on an ADC pin.
 
 ## ESP32 pin map
 
-```
+```text
                   ┌──────────────────┐
    I²C   SDA ── 21│                  │ 35 ── VBAT / 2  (ADC)
          SCL ── 22│      ESP32       │
@@ -53,11 +54,11 @@ Reference pinout, threshold constants, and timing values live at the top of
 
 ## Power budget
 
-- 80 MHz CPU clock (vs the default 240 MHz) drops current draw by ~3× with
++ 80 MHz CPU clock (vs the default 240 MHz) drops current draw by ~3× with
   no impact on the 100 Hz IMU sampling or the 1 Hz / on-trigger ML
   inference budget.
-- BLE advertising + telemetry @ 2 Hz dominates radio power.
-- The firmware computes its own time-remaining estimate from a 21-point
++ BLE advertising + telemetry @ 2 Hz dominates radio power.
++ The firmware computes its own time-remaining estimate from a 21-point
   voltage look-up table plus a live mV reading; the web dashboard also
   computes a local estimate from a 3-hour voltage-sample window
   (see `src/lib/device.ts → estimateRuntime`) so the caregiver sees a
@@ -65,8 +66,8 @@ Reference pinout, threshold constants, and timing values live at the top of
 
 ## Enclosure & strap
 
-- 3D-printed upper-arm enclosure, OLED window cut on the dorsal face.
-- Velcro strap holds the device against the bicep so the IMU axis
++ 3D-printed upper-arm enclosure, OLED window cut on the dorsal face.
++ Velcro strap holds the device against the bicep so the IMU axis
   conventions (Z = away from skin, X = elbow-to-shoulder) stay consistent
   with the training data — this matters: the activity classifier was
   trained on the production hardware in this exact mounting, and changing
@@ -74,7 +75,7 @@ Reference pinout, threshold constants, and timing values live at the top of
 
 ## What the data path looks like
 
-```
+```text
 ESP32 wearable                                            Caregiver web app
 ─ on-device fall detection                                ─ live dashboard
 ─ HR / SpO₂ / temp / IMU      BLE 2 Hz       Realtime     ─ 3D mannequin

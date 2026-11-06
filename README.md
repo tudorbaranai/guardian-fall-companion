@@ -77,7 +77,7 @@ work.
 
 ## What's in this repository
 
-```
+```text
 .
 ├── firmware/              ESP32 firmware (Robu Gabriel) — full snapshot
 │   ├── README.md          full firmware docs (BOM, gates, BLE, OLED UI)
@@ -225,12 +225,12 @@ pio device monitor                    # serial @ 115200
 
 ## Team — **Sudo** (Suceava 2)
 
-| Member                       | Primary role                | Also worked on                                       |
+| Member | Primary role | Also worked on |
 | ---------------------------- | --------------------------- | ---------------------------------------------------- |
-| **Tudor Baranai**            | Caregiver web app · 3D mannequin UI · Supabase data layer | Edge Impulse model training (with Gabi) · Supabase schema (with Stas) |
-| **Robu Gabriel-Lucian**      | Firmware ([`firmware/`](firmware/) · [upstream repo](https://github.com/RobuGabrie/esp32-fall-detection)) — three-gate detection pipeline, FreeRTOS architecture, BLE protocol, OLED UI | Edge Impulse model training (with Tudor) |
+| **Tudor Baranai** | Caregiver web app · 3D mannequin UI · Supabase data layer | Edge Impulse model training (with Gabi) · Supabase schema (with Stas) |
+| **Robu Gabriel-Lucian** | Firmware ([`firmware/`](firmware/) · [upstream repo](https://github.com/RobuGabrie/esp32-fall-detection)) — three-gate detection pipeline, FreeRTOS architecture, BLE protocol, OLED UI | Edge Impulse model training (with Tudor) |
 | **Casciuc Stanislav** ("Stas") | Hardware — wiring, sensor integration, electrical bring-up | Supabase schema (with Tudor) |
-| **Victor Covaliov**          | Industrial design — 3D-printed wearable enclosure | Hardware assembly |
+| **Victor Covaliov** | Industrial design — 3D-printed wearable enclosure | Hardware assembly |
 
 ## Known limitations
 
